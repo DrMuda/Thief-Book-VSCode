@@ -3,61 +3,86 @@
 import { commands, ExtensionContext, window } from 'vscode';
 import * as book from './bookUtil';
 
+import * as vscode from 'vscode';
+
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: ExtensionContext) {
+  // Use the console to output diagnostic information (console.log) and errors (console.error)
+  // This line of code will only be executed once when your extension is activated
+  console.log('Congratulations, your extension "thief-book" is now active!');
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "thief-book" is now active!');
+  // The command has been defined in the package.json file
+  // Now provide the implementation of the command with registerCommand
+  // The commandId parameter must match the command field in package.json
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
+  const textItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Left,
+    3
+  );
+  textItem.command = 'extension.getNextPage';
 
-	// 老板键
-	let displayCode = commands.registerCommand('extension.displayCode', () => {
+  const prevItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Left,
+    2
+  );
+  prevItem.text = '⬆';
+  prevItem.command = 'extension.getPreviousPage';
 
-		let lauage_arr_list = [
-			'Java - System.out.println("Hello World");',
-			'C++ - cout << "Hello, world!" << endl;',
-			'C - printf("Hello, World!");',
-			'Python - print("Hello, World!")',
-			'PHP - echo "Hello World!";',
-			'Ruby - puts "Hello World!";',
-			'Perl - print "Hello, World!";',
-			'Lua - print("Hello World!")',
-			'Scala - println("Hello, world!")',
-			'Golang - fmt.Println("Hello, World!")'
-		];
+  const setText = (text: string) => {
+    textItem.text = text;
+    textItem.show();
+    prevItem.show();
+  };
 
-		var index = Math.floor((Math.random() * lauage_arr_list.length));
-		window.setStatusBarMessage(lauage_arr_list[index]);
-	});
+  // 老板键
+  let displayCode = commands.registerCommand('extension.displayCode', () => {
+    let lauage_arr_list = [
+      'Java - System.out.println("Hello World");',
+      'C++ - cout << "Hello, world!" << endl;',
+      'C - printf("Hello, World!");',
+      'Python - print("Hello, World!")',
+      'PHP - echo "Hello World!";',
+      'Ruby - puts "Hello World!";',
+      'Perl - print "Hello, World!";',
+      'Lua - print("Hello World!")',
+      'Scala - println("Hello, world!")',
+      'Golang - fmt.Println("Hello, World!")',
+    ];
 
-	// 下一页
-	let getNextPage = commands.registerCommand('extension.getNextPage', () => {
-		let books = new book.Book(context);
-		window.setStatusBarMessage(books.getNextPage());
-	});
+    var index = Math.floor(Math.random() * lauage_arr_list.length);
+    setText(lauage_arr_list[index]);
+  });
 
-	// 上一页
-	let getPreviousPage = commands.registerCommand('extension.getPreviousPage', () => {
-		let books = new book.Book(context);
-		window.setStatusBarMessage(books.getPreviousPage());
-	});
+  // 下一页
+  let getNextPage = commands.registerCommand('extension.getNextPage', () => {
+    let books = new book.Book(context);
+    setText(books.getNextPage());
+  });
 
-	// 跳转某个页面
-	let getJumpingPage = commands.registerCommand('extension.getJumpingPage', () => {
-		let books = new book.Book(context);
-		window.setStatusBarMessage(books.getJumpingPage());
-	});
+  // 上一页
+  let getPreviousPage = commands.registerCommand(
+    'extension.getPreviousPage',
+    () => {
+      let books = new book.Book(context);
+      setText(books.getPreviousPage());
+    }
+  );
 
-	context.subscriptions.push(displayCode);
-	context.subscriptions.push(getNextPage);
-	context.subscriptions.push(getPreviousPage);
-	context.subscriptions.push(getJumpingPage);
+  // 跳转某个页面
+  let getJumpingPage = commands.registerCommand(
+    'extension.getJumpingPage',
+    () => {
+      let books = new book.Book(context);
+      setText(books.getJumpingPage());
+    }
+  );
+
+  context.subscriptions.push(displayCode);
+  context.subscriptions.push(getNextPage);
+  context.subscriptions.push(getPreviousPage);
+  context.subscriptions.push(getJumpingPage);
 }
 
 // this method is called when your extension is deactivated
-export function deactivate() { }
+export function deactivate() {}
