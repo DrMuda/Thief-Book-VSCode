@@ -1,8 +1,8 @@
 {
 	"name": "thief-book-pro",
 	"displayName": "Thief-Book-Pro",
-	"description": "摸鱼看书神器 & Looking book tools（升级版）",
-	"version": "1.0.0",
+	"description": "我的 Looking book tools（升级版）",
+	"version": "1.0.1",
 	"engines": {
 		"vscode": "^1.92.0"
 	},
@@ -56,6 +56,11 @@
 					"type": "string",
 					"default": "",
 					"description": "TXT格式小说绝对路径 & Absolute Path of TXT Format Novels"
+				},
+				"thiefBook.textColor":{
+					"type":"string",
+					"default": "#8c8c8c",
+					"description": "字体颜色"
 				}
 			}
 		},
