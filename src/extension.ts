@@ -20,7 +20,7 @@ export function activate(context: ExtensionContext) {
   const books = new book.Book(context);
   const pageSyncInterval = setInterval(
     () => void books.syncPageIfChanged().catch(console.error),
-    30 * 60 * 1000,
+    10 * 60 * 1000,
   );
 
   const textItem = vscode.window.createStatusBarItem(
