@@ -3,6 +3,7 @@ import * as fs from "fs";
 
 export class Book {
     curr_page_number: number = 1;
+    private last_synced_page_number: number = 1;
     page_size: number | undefined = 50;
     page = 0;
     start = 0;
@@ -15,6 +16,7 @@ export class Book {
 
     constructor(extensionContext: ExtensionContext) {
         this.extensionContext = extensionContext;
+        this.refreshPageFromConfiguration();
     }
 
     getSize(text: string) {
@@ -30,7 +32,7 @@ export class Book {
     getPage(type: string) {
 
         var page = 0;
-        var curr_page = <number>workspace.getConfiguration().get('thiefBook.currPageNumber');
+        var curr_page = this.curr_page_number;
         var searchWord = <string>workspace.getConfiguration().get('thiefBook.searchWord');
         if (searchWord) {
             let text = this.readFile();
@@ -54,6 +56,7 @@ export class Book {
                 page = curr_page + 1;
             }
         } else if (type === "curr") {
+            curr_page = <number>workspace.getConfiguration().get('thiefBook.currPageNumber');
             page = curr_page;
         }
 
@@ -61,25 +64,34 @@ export class Book {
         // this.curr_page_number = this.extensionContext.globalState.get("book_page_number", 1);
     }
 
-    updatePage() {
-        // var page = 0;
+    refreshPageFromConfiguration() {
+        const configured_page = <number>workspace.getConfiguration().get('thiefBook.currPageNumber');
 
-        // if (type === "previous") {
-        //     if (this.curr_page_number! <= 1) {
-        //         page = 1;
-        //     } else {
-        //         page = this.curr_page_number! - 1;
-        //     }
-        // } else if (type === "next") {
-        //     if (this.curr_page_number! >= this.page) {
-        //         page = this.page;
-        //     } else {
-        //         page = this.curr_page_number! + 1;
-        //     }
-        // }
+        if (configured_page === this.last_synced_page_number) {
+            return;
+        }
 
-        workspace.getConfiguration().update('thiefBook.currPageNumber', this.curr_page_number, true);
-        // this.extensionContext.globalState.update("book_page_number", page);
+        this.curr_page_number = configured_page;
+        this.last_synced_page_number = configured_page;
+    }
+
+    async syncPageIfChanged() {
+        if (this.curr_page_number === this.last_synced_page_number) {
+            return;
+        }
+
+        const page_to_sync = this.curr_page_number;
+        const previously_synced_page = this.last_synced_page_number;
+        this.last_synced_page_number = page_to_sync;
+
+        try {
+            await workspace.getConfiguration().update('thiefBook.currPageNumber', page_to_sync, true);
+        } catch (error) {
+            if (this.last_synced_page_number === page_to_sync) {
+                this.last_synced_page_number = previously_synced_page;
+            }
+            throw error;
+        }
     }
 
     getStartEnd() {
@@ -131,7 +143,6 @@ export class Book {
 
         var page_info = this.curr_page_number.toString() + "/" + this.page.toString();
 
-        this.updatePage();
         return text.substring(this.start, this.end) + "    " + page_info;
     }
 
@@ -146,8 +157,6 @@ export class Book {
 
         var page_info = this.curr_page_number.toString() + "/" + this.page.toString();
 
-        this.updatePage();
-
         return text.substring(this.start, this.end) + "    " + page_info;
     }
 
@@ -161,8 +170,6 @@ export class Book {
         this.getStartEnd();
 
         var page_info = this.curr_page_number.toString() + "/" + this.page.toString();
-
-        this.updatePage();
 
         return text.substring(this.start, this.end) + "    " + page_info;
     }

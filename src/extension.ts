@@ -17,6 +17,11 @@ export function activate(context: ExtensionContext) {
   // The commandId parameter must match the command field in package.json
   const textColor = () =>
     <string>workspace.getConfiguration().get("thiefBook.textColor");
+  const books = new book.Book(context);
+  const pageSyncInterval = setInterval(
+    () => void books.syncPageIfChanged().catch(console.error),
+    30 * 60 * 1000,
+  );
 
   const textItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Left,
@@ -47,7 +52,6 @@ export function activate(context: ExtensionContext) {
 
   // 下一页
   let getNextPage = commands.registerCommand("extension.getNextPage", () => {
-    let books = new book.Book(context);
     setText(books.getNextPage());
   });
 
@@ -55,7 +59,6 @@ export function activate(context: ExtensionContext) {
   let getPreviousPage = commands.registerCommand(
     "extension.getPreviousPage",
     () => {
-      let books = new book.Book(context);
       setText(books.getPreviousPage());
     },
   );
@@ -64,15 +67,24 @@ export function activate(context: ExtensionContext) {
   let getJumpingPage = commands.registerCommand(
     "extension.getJumpingPage",
     () => {
-      let books = new book.Book(context);
       setText(books.getJumpingPage());
     },
   );
+
+  const pageConfigurationChange = workspace.onDidChangeConfiguration((event) => {
+    if (event.affectsConfiguration("thiefBook.currPageNumber")) {
+      books.refreshPageFromConfiguration();
+    }
+  });
 
   context.subscriptions.push(displayCode);
   context.subscriptions.push(getNextPage);
   context.subscriptions.push(getPreviousPage);
   context.subscriptions.push(getJumpingPage);
+  context.subscriptions.push(pageConfigurationChange);
+  context.subscriptions.push({
+    dispose: () => clearInterval(pageSyncInterval),
+  });
 }
 
 // this method is called when your extension is deactivated
