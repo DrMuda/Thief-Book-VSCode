@@ -51,23 +51,23 @@ export function activate(context: ExtensionContext) {
   });
 
   // 下一页
-  let getNextPage = commands.registerCommand("extension.getNextPage", () => {
-    setText(books.getNextPage());
+  let getNextPage = commands.registerCommand("extension.getNextPage", async () => {
+    setText(await books.getNextPage());
   });
 
   // 上一页
   let getPreviousPage = commands.registerCommand(
     "extension.getPreviousPage",
-    () => {
-      setText(books.getPreviousPage());
+    async () => {
+      setText(await books.getPreviousPage());
     },
   );
 
   // 跳转某个页面
   let getJumpingPage = commands.registerCommand(
     "extension.getJumpingPage",
-    () => {
-      setText(books.getJumpingPage());
+    async () => {
+      setText(await books.getJumpingPage());
     },
   );
 

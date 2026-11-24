@@ -2,7 +2,7 @@
 	"name": "thief-book-pro",
 	"displayName": "Thief-Book-Pro",
 	"description": "我的 Looking book tools（升级版）",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"engines": {
 		"vscode": "^1.92.0"
 	},

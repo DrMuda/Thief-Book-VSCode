@@ -29,7 +29,7 @@ export class Book {
         console.log(file_name);
     }
 
-    getPage(type: string) {
+    async getPage(type: string) {
 
         var page = 0;
         var curr_page = this.curr_page_number;
@@ -39,8 +39,9 @@ export class Book {
             let index = text.indexOf(searchWord.replace(/^\s$/g, ""));
             if (index > -1) {
                 curr_page = Math.floor(index / this.page_size!) + 1;
+                await this.updatePageConfiguration(curr_page);
             }
-            workspace.getConfiguration().update('thiefBook.searchWord', '', true);
+            await workspace.getConfiguration().update('thiefBook.searchWord', '', true);
         }
 
         if (type === "previous") {
@@ -80,7 +81,10 @@ export class Book {
             return;
         }
 
-        const page_to_sync = this.curr_page_number;
+        await this.updatePageConfiguration(this.curr_page_number);
+    }
+
+    private async updatePageConfiguration(page_to_sync: number) {
         const previously_synced_page = this.last_synced_page_number;
         this.last_synced_page_number = page_to_sync;
 
@@ -132,13 +136,13 @@ export class Book {
         }
     }
 
-    getPreviousPage() {
+    async getPreviousPage() {
         this.init();
 
         let text = this.readFile();
 
         this.getSize(text);
-        this.getPage("previous");
+        await this.getPage("previous");
         this.getStartEnd();
 
         var page_info = this.curr_page_number.toString() + "/" + this.page.toString();
@@ -146,13 +150,13 @@ export class Book {
         return text.substring(this.start, this.end) + "    " + page_info;
     }
 
-    getNextPage() {
+    async getNextPage() {
         this.init();
 
         let text = this.readFile();
 
         this.getSize(text);
-        this.getPage("next");
+        await this.getPage("next");
         this.getStartEnd();
 
         var page_info = this.curr_page_number.toString() + "/" + this.page.toString();
@@ -160,13 +164,13 @@ export class Book {
         return text.substring(this.start, this.end) + "    " + page_info;
     }
 
-    getJumpingPage() {
+    async getJumpingPage() {
         this.init();
 
         let text = this.readFile();
 
         this.getSize(text);
-        this.getPage("curr");
+        await this.getPage("curr");
         this.getStartEnd();
 
         var page_info = this.curr_page_number.toString() + "/" + this.page.toString();
