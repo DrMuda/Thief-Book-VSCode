@@ -1,6 +1,17 @@
 import { ExtensionContext, workspace, window } from 'vscode';
 import * as fs from "fs";
 
+export interface BookSyncSnapshot {
+    filePath: string;
+    bytes: Buffer;
+    rawText: string;
+    textLength: number;
+    pageSize: number;
+    lineBreak: string;
+    currentPage: number;
+    totalPages: number;
+}
+
 export class Book {
     curr_page_number: number = 1;
     private last_synced_page_number: number = 1;
@@ -13,6 +24,7 @@ export class Book {
     extensionContext: ExtensionContext;
     text: string = "";
     textSize = 0;
+    onLocalProgressChange: (() => void) | undefined;
 
     constructor(extensionContext: ExtensionContext) {
         this.extensionContext = extensionContext;
@@ -32,6 +44,7 @@ export class Book {
     async getPage(type: string) {
 
         var page = 0;
+        const previous_page = this.curr_page_number;
         var curr_page = this.curr_page_number;
         var searchWord = <string>workspace.getConfiguration().get('thiefBook.searchWord');
         if (searchWord) {
@@ -62,6 +75,9 @@ export class Book {
         }
 
         this.curr_page_number = page;
+        if (this.curr_page_number !== previous_page) {
+            this.onLocalProgressChange?.();
+        }
         // this.curr_page_number = this.extensionContext.globalState.get("book_page_number", 1);
     }
 
@@ -74,6 +90,7 @@ export class Book {
 
         this.curr_page_number = configured_page;
         this.last_synced_page_number = configured_page;
+        this.onLocalProgressChange?.();
     }
 
     async syncPageIfChanged() {
@@ -110,7 +127,7 @@ export class Book {
             this.currFilePath = "";
             this.textSize = 0;
         } else {
-            if (this.currFilePath != this.filePath) {
+            if (this.currFilePath !== this.filePath) {
                 this.currFilePath = this.filePath;
                 var data = fs.readFileSync(this.filePath!, 'utf-8');
                 
@@ -134,6 +151,44 @@ export class Book {
         } else {
             this.page_size = workspace.getConfiguration().get('thiefBook.pageSize');
         }
+    }
+
+    getSyncSnapshot(): BookSyncSnapshot | undefined {
+        this.init();
+        const text = this.readFile();
+        if (!this.filePath || !text || !this.page_size) {
+            return undefined;
+        }
+
+        this.getSize(text);
+        const bytes = fs.readFileSync(this.filePath);
+        const rawText = bytes.toString('utf8').replace(/^\uFEFF/, '');
+        const lineBreak = <string>workspace.getConfiguration().get('thiefBook.lineBreak');
+        return {
+            filePath: this.filePath,
+            bytes,
+            rawText,
+            textLength: this.textSize,
+            pageSize: this.page_size,
+            lineBreak,
+            currentPage: this.curr_page_number,
+            totalPages: this.page,
+        };
+    }
+
+    async applyRemotePage(remote_page: number) {
+        this.init();
+        const text = this.readFile();
+        if (!text || !this.page_size) {
+            return false;
+        }
+
+        this.getSize(text);
+        const safe_page = Math.min(Math.max(1, remote_page), Math.max(1, this.page));
+        const changed = safe_page !== this.curr_page_number;
+        this.curr_page_number = safe_page;
+        await this.updatePageConfiguration(safe_page);
+        return changed;
     }
 
     async getPreviousPage() {

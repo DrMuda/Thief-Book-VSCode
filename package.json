@@ -2,7 +2,7 @@
 	"name": "thief-book-pro",
 	"displayName": "Thief-Book-Pro",
 	"description": "我的 Looking book tools（升级版）",
-	"version": "1.0.3",
+	"version": "1.1.0",
 	"engines": {
 		"vscode": "^1.92.0"
 	},
@@ -57,6 +57,11 @@
 					"default": "",
 					"description": "TXT格式小说绝对路径 & Absolute Path of TXT Format Novels"
 				},
+				"thiefBook.readerServerUrl": {
+					"type": "string",
+					"default": "",
+					"description": "Reader 服务端地址，例如 http://localhost:5888"
+				},
 				"thiefBook.textColor": {
 					"type": "string",
 					"default": "#8c8c8c",
@@ -80,6 +85,18 @@
 			{
 				"command": "extension.getJumpingPage",
 				"title": "thief-book.JumpingBook"
+			},
+			{
+				"command": "extension.readerLogin",
+				"title": "Thief Book: 登录 Reader"
+			},
+			{
+				"command": "extension.readerLogout",
+				"title": "Thief Book: 退出 Reader"
+			},
+			{
+				"command": "extension.readerSyncNow",
+				"title": "Thief Book: 立即同步阅读进度"
 			}
 		],
 		"keybindings": [

@@ -29,6 +29,15 @@
 - **Mac** or **Linux** : /opt/test/name.txt
 - **Win** : C:\\\Users\\\Administrator\\\Desktop\\\name.txt or C:/Users/Administrator/Desktop/name.txt
 
+## 与 Reader 同步阅读进度
+
+1. 在 VS Code 命令面板执行 `Thief Book: 登录 Reader`，填写 Reader 服务端地址、用户名和密码。
+2. 插件按 TXT 原始内容哈希匹配 Reader 中的同一本书，文件名和保存路径可以不同。
+3. 执行 `Thief Book: 立即同步阅读进度` 可手动同步；插件启动时及每 10 分钟也会自动同步。
+4. 两端都修改过进度时，以更新时间较新的记录为准。Reader 令牌保存在 VS Code SecretStorage 中，密码不会保存到配置。
+
+Reader 服务端地址可通过 `thiefBook.readerServerUrl` 修改。服务部署到公网时应使用 HTTPS。
+
 ## 快捷键
 
 > 没有设置TXT小说的本地绝对路径，会报错，会提示设置路径

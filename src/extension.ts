@@ -2,6 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import { commands, ExtensionContext, workspace } from "vscode";
 import * as book from "./bookUtil";
+import { ReaderSyncService, SyncResult } from "./readerSync";
 
 import * as vscode from "vscode";
 
@@ -18,10 +19,8 @@ export function activate(context: ExtensionContext) {
   const textColor = () =>
     <string>workspace.getConfiguration().get("thiefBook.textColor");
   const books = new book.Book(context);
-  const pageSyncInterval = setInterval(
-    () => void books.syncPageIfChanged().catch(console.error),
-    10 * 60 * 1000,
-  );
+  const readerSync = new ReaderSyncService(context, books);
+  books.onLocalProgressChange = () => void readerSync.markLocalChange().catch(console.error);
 
   const textItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Left,
@@ -43,6 +42,33 @@ export function activate(context: ExtensionContext) {
     prevItem.color = textColor();
     prevItem.show();
   };
+
+  const syncReader = async (showResult: boolean) => {
+    const result = await readerSync.syncNow();
+    if (result.changed) {
+      setText(await books.getJumpingPage());
+    }
+    if (showResult) {
+      const messages: Record<SyncResult["direction"], string> = {
+        uploaded: "已将 VS Code 阅读进度同步到 Reader",
+        downloaded: "已从 Reader 恢复阅读进度",
+        unchanged: "两端阅读进度已一致",
+      };
+      vscode.window.showInformationMessage(messages[result.direction]);
+    }
+  };
+
+  const pageSyncInterval = setInterval(() => {
+    void books.syncPageIfChanged().catch(console.error);
+    void readerSync
+      .isConfigured()
+      .then((configured) => {
+        if (configured) {
+          return syncReader(false);
+        }
+      })
+      .catch(console.error);
+  }, 10 * 60 * 1000);
 
   // 老板键
   let displayCode = commands.registerCommand("extension.displayCode", () => {
@@ -71,6 +97,26 @@ export function activate(context: ExtensionContext) {
     },
   );
 
+  const readerLogin = commands.registerCommand("extension.readerLogin", async () => {
+    try {
+      if (await readerSync.login()) {
+        await syncReader(false);
+      }
+    } catch (error) {
+      vscode.window.showErrorMessage(error instanceof Error ? error.message : String(error));
+    }
+  });
+
+  const readerLogout = commands.registerCommand("extension.readerLogout", () => readerSync.logout());
+
+  const readerSyncNow = commands.registerCommand("extension.readerSyncNow", async () => {
+    try {
+      await syncReader(true);
+    } catch (error) {
+      vscode.window.showErrorMessage(error instanceof Error ? error.message : String(error));
+    }
+  });
+
   const pageConfigurationChange = workspace.onDidChangeConfiguration((event) => {
     if (event.affectsConfiguration("thiefBook.currPageNumber")) {
       books.refreshPageFromConfiguration();
@@ -81,10 +127,22 @@ export function activate(context: ExtensionContext) {
   context.subscriptions.push(getNextPage);
   context.subscriptions.push(getPreviousPage);
   context.subscriptions.push(getJumpingPage);
+  context.subscriptions.push(readerLogin);
+  context.subscriptions.push(readerLogout);
+  context.subscriptions.push(readerSyncNow);
   context.subscriptions.push(pageConfigurationChange);
   context.subscriptions.push({
     dispose: () => clearInterval(pageSyncInterval),
   });
+
+  void readerSync
+    .isConfigured()
+    .then((configured) => {
+      if (configured) {
+        return syncReader(false);
+      }
+    })
+    .catch(console.error);
 }
 
 // this method is called when your extension is deactivated
