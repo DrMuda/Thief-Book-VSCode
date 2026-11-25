@@ -132,10 +132,7 @@ export function pageForReaderPercentage(snapshot: BookSyncSnapshot, percentage: 
   const map = coordinateMap(snapshot);
   const safePercentage = clampPercentage(percentage);
   if (map.chapters.length === 0) {
-    return Math.min(
-      Math.max(1, Math.floor((safePercentage * snapshot.textLength) / snapshot.pageSize) + 1),
-      Math.max(1, snapshot.totalPages),
-    );
+    return pageForDisplayOffset(snapshot, safePercentage * snapshot.textLength);
   }
 
   const target = safePercentage * map.totalReaderLength;
@@ -152,6 +149,32 @@ export function pageForReaderPercentage(snapshot: BookSyncSnapshot, percentage: 
     displayOffset += chapter.displayLength;
   }
 
+  return pageForDisplayOffset(snapshot, displayOffset);
+}
+
+export function pageForReaderProgress(
+  snapshot: BookSyncSnapshot,
+  locator: string,
+  percentage: number,
+): number {
+  const map = coordinateMap(snapshot);
+  const locatorMatch = /^r1:([^:]+):chapter:(\d+)$/.exec(locator);
+  if (locatorMatch && map.chapters.length > 0) {
+    const within = Number.parseFloat(locatorMatch[1]);
+    const chapterIndex = Number.parseInt(locatorMatch[2], 10);
+    if (Number.isFinite(within) && chapterIndex >= 0 && chapterIndex < map.chapters.length) {
+      let displayOffset = map.prefaceDisplayLength;
+      for (let index = 0; index < chapterIndex; index += 1) {
+        displayOffset += map.chapters[index].displayLength;
+      }
+      displayOffset += map.chapters[chapterIndex].displayLength * clampPercentage(within);
+      return pageForDisplayOffset(snapshot, displayOffset);
+    }
+  }
+  return pageForReaderPercentage(snapshot, percentage);
+}
+
+function pageForDisplayOffset(snapshot: BookSyncSnapshot, displayOffset: number): number {
   return Math.min(
     Math.max(1, Math.floor((displayOffset + 1e-7) / snapshot.pageSize) + 1),
     Math.max(1, snapshot.totalPages),

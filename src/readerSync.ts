@@ -3,7 +3,7 @@ import * as https from "https";
 import { URL } from "url";
 import { ConfigurationTarget, ExtensionContext, window, workspace } from "vscode";
 import { Book } from "./bookUtil";
-import { createLocalProgress, pageForReaderPercentage } from "./readerSyncCore";
+import { createLocalProgress, pageForReaderProgress } from "./readerSyncCore";
 
 const SESSION_SECRET = "thiefBook.readerSession";
 const LOCAL_UPDATED_PREFIX = "thiefBook.readerSync.localUpdatedAt:";
@@ -46,6 +46,11 @@ function normalizeServerUrl(value: string): string {
     throw new Error("Reader 地址必须使用 http 或 https");
   }
   return parsed.toString().replace(/\/$/, "");
+}
+
+function locatorSection(locator: string): string {
+  const match = /^r1:[^:]+:(.+)$/.exec(locator);
+  return match?.[1] ?? "";
 }
 
 export class ReaderSyncService {
@@ -142,8 +147,17 @@ export class ReaderSyncService {
       await this.context.globalState.update(key, localUpdatedAt);
     }
 
-    if (remote && (localUpdatedAt === undefined || remote.updatedAt > localUpdatedAt)) {
-      const remotePage = pageForReaderPercentage(snapshot, remote.percentage);
+    const sameTimestampDifferentSection =
+      remote !== null &&
+      localUpdatedAt !== undefined &&
+      remote.updatedAt === localUpdatedAt &&
+      locatorSection(remote.locator) !== "" &&
+      locatorSection(remote.locator) !== locatorSection(local.locator);
+    if (
+      remote &&
+      (localUpdatedAt === undefined || remote.updatedAt > localUpdatedAt || sameTimestampDifferentSection)
+    ) {
+      const remotePage = pageForReaderProgress(snapshot, remote.locator, remote.percentage);
       const changed = await this.book.applyRemotePage(remotePage);
       await this.context.globalState.update(key, remote.updatedAt);
       return { changed, direction: "downloaded" };
